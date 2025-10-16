@@ -1,3 +1,4 @@
+import { Assignment, Course, Entity, Offering, Personnel, University, UserAccount } from "./types"
 const STORAGE_KEYS = {
   UNIVERSITIES: "astu_universities",
   ENTITIES: "astu_entities",
