@@ -10,17 +10,17 @@ const STORAGE_KEYS = {
 } as const
 
 // Helper to safely access localStorage
-const getFromStorage = <T>(key: string): T[] => {\
+const getFromStorage = <T>(key: string): T[] => {
   if (typeof window === 'undefined') return []
-  try {\
+  try {
     const data = localStorage.getItem(key)
     return data ? JSON.parse(data) : []
-  } catch {\
+  } catch {
     return []
   }
 }
 
-const saveToStorage = <T>(key: string, data: T[]): void => {\
+const saveToStorage = <T>(key: string, data: T[]): void => {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(data))
@@ -30,21 +30,21 @@ const saveToStorage = <T>(key: string, data: T[]): void => {\
 }
 
 // University storage operations
-export const universityStorage = {\
+export const universityStorage = {
   getAll: (): University[] => getFromStorage<University>(STORAGE_KEYS.UNIVERSITIES),
   
-  getById: (id: string): University | undefined => {\
+  getById: (id: string): University | undefined => {
     return universityStorage.getAll().find((u) => u.id === id)
   },
   
-  getByDomain: (domain: string): University | undefined => {\
+  getByDomain: (domain: string): University | undefined => {
     return universityStorage.getAll().find((u) => u.domain.toLowerCase() === domain.toLowerCase())
   },
-  \
-  create: (university: Omit<University, 'id' | 'createdAt' | 'updatedAt'>): University => {\
+  
+  create: (university: Omit<University, 'id' | 'createdAt' | 'updatedAt'>): University => {
     const universities = universityStorage.getAll()
     const newUniversity: University = {
-      ...university,\
+      ...university,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -54,13 +54,13 @@ export const universityStorage = {\
     return newUniversity
   },
   
-  update: (id: string, updates: Partial<University>): University | null => {\
+  update: (id: string, updates: Partial<University>): University | null => {
     const universities = universityStorage.getAll()
     const index = universities.findIndex((u) => u.id === id)
     if (index === -1) return null
     
     universities[index] = {
-      ...universities[index],\
+      ...universities[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     }
@@ -70,24 +70,24 @@ export const universityStorage = {\
 }
 
 // Entity operations
-export const entityStorage = {\
-  getAll: (universityId?: string): Entity[] => {\
+export const entityStorage = {
+  getAll: (universityId?: string): Entity[] => {
     const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
     return universityId ? entities.filter((e) => e.universityId === universityId) : entities
   },
   
-  getById: (id: string): Entity | undefined => {\
+  getById: (id: string): Entity | undefined => {
     return getFromStorage<Entity>(STORAGE_KEYS.ENTITIES).find((e) => e.id === id)
   },
   
-  getByParentId: (parentId: string | null, universityId: string): Entity[] => {\
+  getByParentId: (parentId: string | null, universityId: string): Entity[] => {
     return entityStorage.getAll(universityId).filter((e) => e.parentEntityId === parentId)
   },
-  \
-  create: (entity: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Entity => {\
+  
+  create: (entity: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Entity => {
     const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
     const newEntity: Entity = {
-      ...entity,\
+      ...entity,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -97,13 +97,13 @@ export const entityStorage = {\
     return newEntity
   },
   
-  update: (id: string, updates: Partial<Entity>): Entity | null => {\
+  update: (id: string, updates: Partial<Entity>): Entity | null => {
     const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
     const index = entities.findIndex((e) => e.id === id)
     if (index === -1) return null
     
     entities[index] = {
-      ...entities[index],\
+      ...entities[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     }
@@ -111,26 +111,26 @@ export const entityStorage = {\
     return entities[index]
   },
   
-  archive: (id: string): boolean => {\
+  archive: (id: string): boolean => {
     return !!entityStorage.update(id, { status: 'Archived' })
   },
 }
 
 // Personnel operations
-export const personnelStorage = {\
-  getAll: (universityId?: string): Personnel[] => {\
+export const personnelStorage = {
+  getAll: (universityId?: string): Personnel[] => {
     const personnel = getFromStorage<Personnel>(STORAGE_KEYS.PERSONNEL)
     return universityId ? personnel.filter((p) => p.universityId === universityId) : personnel
   },
   
-  getById: (id: string): Personnel | undefined => {\
+  getById: (id: string): Personnel | undefined => {
     return getFromStorage<Personnel>(STORAGE_KEYS.PERSONNEL).find((p) => p.id === id)
   },
-  \
-  create: (personnel: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>): Personnel => {\
+  
+  create: (personnel: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>): Personnel => {
     const allPersonnel = getFromStorage<Personnel>(STORAGE_KEYS.PERSONNEL)
     const newPersonnel: Personnel = {
-      ...personnel,\
+      ...personnel,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -140,13 +140,13 @@ export const personnelStorage = {\
     return newPersonnel
   },
   
-  update: (id: string, updates: Partial<Personnel>): Personnel | null => {\
+  update: (id: string, updates: Partial<Personnel>): Personnel | null => {
     const allPersonnel = getFromStorage<Personnel>(STORAGE_KEYS.PERSONNEL)
     const index = allPersonnel.findIndex((p) => p.id === id)
     if (index === -1) return null
     
     allPersonnel[index] = {
-      ...allPersonnel[index],\
+      ...allPersonnel[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     }
