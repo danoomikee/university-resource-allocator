@@ -310,14 +310,14 @@ export default function EntitiesPage() {
             <div className="space-y-2">
               <Label htmlFor="parentEntity">Parent Entity</Label>
               <Select
-                value={formData.parentEntityId}
-                onValueChange={(value) => setFormData({ ...formData, parentEntityId: value })}
+                value={formData.parentEntityId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, parentEntityId: value === "none" ? "" : value })}
               >
                 <SelectTrigger id="parentEntity">
                   <SelectValue placeholder="Select parent entity (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {entities
                     .filter((e) => e.status === "Active")
                     .map((entity) => (
@@ -395,14 +395,14 @@ export default function EntitiesPage() {
             <div className="space-y-2">
               <Label htmlFor="editParentEntity">Parent Entity</Label>
               <Select
-                value={formData.parentEntityId}
-                onValueChange={(value) => setFormData({ ...formData, parentEntityId: value })}
+                value={formData.parentEntityId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, parentEntityId: value === "none" ? "" : value })}
               >
                 <SelectTrigger id="editParentEntity">
                   <SelectValue placeholder="Select parent entity (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {entities
                     .filter((e) => e.status === "Active" && e.id !== selectedEntity?.id)
                     .map((entity) => (
