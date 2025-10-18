@@ -27,7 +27,6 @@ export const generateTempPassword = (): string => {
 export const login = (
   username: string,
   password: string,
-  entityId?: string,
 ): {
   success: boolean
   user?: UserAccount
@@ -36,7 +35,7 @@ export const login = (
   university?: University
   error?: string
 } => {
-  console.log("[v0] Login attempt:", { username, entityId })
+  console.log("[v0] Login attempt:", { username })
 
   const user = userStorage.getByUsername(username)
   if (!user) {
@@ -54,25 +53,18 @@ export const login = (
       return { success: false, error: "University not found" }
     }
 
-    // For SuperAdmin, we don't need to verify a password since they don't have entity assignments
-    // In a real system, you might want to add a separate password for SuperAdmin
     sessionStorage.setCurrentUser(user)
     sessionStorage.setCurrentEntity(null)
     console.log("[v0] SuperAdmin login successful")
     return { success: true, user, university }
   }
 
-  // EntityAdmin login - entity required
-  if (!entityId) {
-    console.log("[v0] EntityAdmin login requires entityId")
-    return { success: false, error: "Entity selection required for this user" }
-  }
-
-  console.log("[v0] EntityAdmin login - checking assignment")
-  const assignment = entityAssignmentStorage.getByUserAndEntity(user.id, entityId, user.universityId)
+  // EntityAdmin login - automatically find their assigned entity
+  console.log("[v0] EntityAdmin login - finding assigned entity")
+  const assignment = entityAssignmentStorage.getByUserId(user.id, user.universityId)
   if (!assignment) {
-    console.log("[v0] No assignment found for user and entity")
-    return { success: false, error: "User is not assigned to this entity" }
+    console.log("[v0] No entity assignment found for user")
+    return { success: false, error: "User is not assigned to any entity" }
   }
 
   console.log("[v0] Assignment found, verifying password")
@@ -81,7 +73,7 @@ export const login = (
     return { success: false, error: "Invalid username or password" }
   }
 
-  const entity = entityStorage.getById(entityId)
+  const entity = entityStorage.getById(assignment.entityId)
   if (!entity) {
     console.log("[v0] Entity not found")
     return { success: false, error: "Entity not found" }
@@ -169,8 +161,10 @@ export const changePassword = (
 }
 
 export const getUserAssignedEntities = (userId: string, universityId: string): Entity[] => {
-  const assignments = entityAssignmentStorage.getByUserId(userId, universityId)
-  return assignments.map((a) => entityStorage.getById(a.entityId)).filter((e): e is Entity => e !== undefined)
+  const assignment = entityAssignmentStorage.getByUserId(userId, universityId)
+  if (!assignment) return []
+  const entity = entityStorage.getById(assignment.entityId)
+  return entity ? [entity] : []
 }
 
 export const getEntityManagers = (
@@ -184,6 +178,17 @@ export const getEntityManagers = (
       return user ? { ...user, assignment: a } : null
     })
     .filter((item): item is UserAccount & { assignment: EntityAssignment } => item !== null)
+}
+
+export const getEntityManager = (
+  entityId: string,
+  universityId: string,
+): (UserAccount & { assignment: EntityAssignment }) | null => {
+  const assignment = entityAssignmentStorage.getByEntityId(entityId, universityId)
+  if (!assignment) return null
+
+  const user = userStorage.getById(assignment.userId)
+  return user ? { ...user, assignment } : null
 }
 
 export const getCurrentUniversity = (): University | null => {

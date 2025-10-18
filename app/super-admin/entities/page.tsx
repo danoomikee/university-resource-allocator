@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { entityStorage } from "@/lib/storage"
-import type { Entity, EntityType, EntityStatus } from "@/lib/types"
+import { entityStorage, userStorage, entityAssignmentStorage } from "@/lib/storage"
+import type { Entity, EntityType, EntityStatus, UserAccount } from "@/lib/types"
 import { Building2, Plus, Edit, Archive, Search } from "lucide-react"
+import { getCurrentUniversity, generateTempPassword, hashPassword } from "@/lib/auth"
 
 export default function EntitiesPage() {
   const [entities, setEntities] = useState<Entity[]>([])
@@ -35,16 +36,25 @@ export default function EntitiesPage() {
     name: "",
     type: "College" as EntityType,
     parentEntityId: "",
+    managerId: "",
     status: "Active" as EntityStatus,
   })
 
+  const [users, setUsers] = useState<UserAccount[]>([])
+
   useEffect(() => {
     loadEntities()
+    loadUsers()
   }, [])
 
   useEffect(() => {
     filterEntities()
   }, [entities, searchQuery, filterType, filterStatus])
+
+  const loadUsers = () => {
+    const allUsers = userStorage.getAll()
+    setUsers(allUsers.filter((u) => u.role === "EntityAdmin"))
+  }
 
   const loadEntities = () => {
     const allEntities = entityStorage.getAll()
@@ -78,15 +88,45 @@ export default function EntitiesPage() {
     return parent ? parent.name : "Unknown"
   }
 
-  const handleCreate = () => {
-    if (!formData.name.trim()) return
+  const getManagerName = (managerId: string): string => {
+    const user = userStorage.getById(managerId)
+    return user ? user.username : "Unknown"
+  }
 
-    entityStorage.create({
+  const handleCreate = () => {
+    if (!formData.name.trim() || !formData.managerId) {
+      alert("Please fill in all required fields including selecting a manager")
+      return
+    }
+
+    const university = getCurrentUniversity()
+    if (!university) {
+      alert("University context not found")
+      return
+    }
+
+    const newEntity = entityStorage.create({
       name: formData.name,
       type: formData.type,
       parentEntityId: formData.parentEntityId || null,
+      managerId: formData.managerId,
       status: formData.status,
+      universityId: university.id,
     })
+
+    const tempPassword = generateTempPassword()
+    entityAssignmentStorage.create({
+      userId: formData.managerId,
+      entityId: newEntity.id,
+      password: hashPassword(tempPassword),
+      mustChangePassword: true,
+      universityId: university.id,
+    })
+
+    const managerUser = userStorage.getById(formData.managerId)
+    alert(
+      `Entity created successfully!\n\nTemporary password for ${managerUser?.username}:\n${tempPassword}\n\nShare this with the manager. They must change it on first login.`,
+    )
 
     loadEntities()
     setIsCreateDialogOpen(false)
@@ -122,6 +162,7 @@ export default function EntitiesPage() {
       name: entity.name,
       type: entity.type,
       parentEntityId: entity.parentEntityId || "",
+      managerId: entity.managerId,
       status: entity.status,
     })
     setIsEditDialogOpen(true)
@@ -132,6 +173,7 @@ export default function EntitiesPage() {
       name: "",
       type: "College",
       parentEntityId: "",
+      managerId: "",
       status: "Active",
     })
   }
@@ -146,7 +188,7 @@ export default function EntitiesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Entities</h1>
-          <p className="text-muted-foreground">Manage organizational entities</p>
+          <p className="text-muted-foreground">Manage organizational entities and assign managers</p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
@@ -232,6 +274,7 @@ export default function EntitiesPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Manager</TableHead>
                     <TableHead>Parent Entity</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -244,6 +287,7 @@ export default function EntitiesPage() {
                       <TableCell>
                         <Badge variant="outline">{entity.type}</Badge>
                       </TableCell>
+                      <TableCell className="text-muted-foreground">{getManagerName(entity.managerId)}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {getParentEntityName(entity.parentEntityId)}
                       </TableCell>
@@ -276,7 +320,7 @@ export default function EntitiesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Entity</DialogTitle>
-            <DialogDescription>Create a new organizational entity</DialogDescription>
+            <DialogDescription>Create a new organizational entity and assign a manager</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -303,6 +347,25 @@ export default function EntitiesPage() {
                   <SelectItem value="Department">Department</SelectItem>
                   <SelectItem value="Division">Division</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="manager">Manager *</Label>
+              <Select
+                value={formData.managerId}
+                onValueChange={(value) => setFormData({ ...formData, managerId: value })}
+              >
+                <SelectTrigger id="manager">
+                  <SelectValue placeholder="Select entity manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.username}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -349,7 +412,7 @@ export default function EntitiesPage() {
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={!formData.name.trim()}>
+            <Button onClick={handleCreate} disabled={!formData.name.trim() || !formData.managerId}>
               Create Entity
             </Button>
           </DialogFooter>

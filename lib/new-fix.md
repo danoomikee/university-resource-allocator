@@ -4,7 +4,7 @@ The entities are empty in your "Add Assignment" modal because the `getEntities` 
 
 In **`storage.ts`**, the `getEntities` function is designed to fetch entities for a specific university, but it contains a filter that is likely excluding all your data:
 
-```typescript
+\`\`\`typescript
 // storage.ts
 
 // ... (EntityStorage class definition)
@@ -20,7 +20,7 @@ getEntities(): Entity[] {
       !entity.isDeleted && entity.status === "Active" && entity.type === "Department"
   )
 }
-```
+\`\`\`
 
 The Super Admin needs to see **all** entities within their university context to manage assignments, but this function hardcodes a filter for `entity.type === "Department"` and `entity.status === "Active"`. If your newly created entities have a different type (e.g., "College", "Lab") or status (e.g., "Pending"), they are all filtered out, resulting in an empty list.
 
@@ -32,7 +32,7 @@ You need to modify `getEntities` in **`storage.ts`** to accept optional paramete
 
 Modify the `getEntities` function to return **all** entities by default, and introduce an optional filter for specific use cases (like the front-end display, which may only need Active Departments).
 
-```typescript
+\`\`\`typescript
 // storage.ts
 
 // ...
@@ -65,7 +65,7 @@ export class EntityStorage {
 }
 
 export const entityStorage = new EntityStorage()
-```
+\`\`\`
 
 ### 2\. Update `page.tsx`
 
@@ -73,7 +73,7 @@ The `page.tsx` is where the entity list is fetched in the `ManageAssignmentsPage
 
 Since the `page.tsx` is running in a SuperAdmin context (`/super-admin/assignments`), you should use the university context available to fetch all entities belonging to that university.
 
-```typescript
+\`\`\`typescript
 // page.tsx
 
 "use client"
@@ -98,6 +98,6 @@ import { entityStorage } from "@/lib/storage" // Import entityStorage
   }
 
 // ...
-```
+\`\`\`
 
 By implementing these changes, the Super Admin's "Add Assignment" modal will correctly display all existing entities within the university, resolving the empty list issue.

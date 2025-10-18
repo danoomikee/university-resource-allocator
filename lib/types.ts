@@ -25,6 +25,7 @@ export interface Entity {
   name: string
   type: EntityType
   parentEntityId: string | null
+  managerId: string // User ID of the entity admin
   status: EntityStatus
   createdAt: string
   updatedAt: string

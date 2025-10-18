@@ -1,12 +1,4 @@
-import {
-  EntityAssignment,
-  Course,
-  Entity,
-  Offering,
-  Personnel,
-  University,
-  UserAccount,
-} from "./types";
+import { EntityAssignment, Course, Entity, Offering, Personnel, University, UserAccount } from "./types"
 
 const STORAGE_KEYS = {
   UNIVERSITIES: "astu_universities",
@@ -17,49 +9,49 @@ const STORAGE_KEYS = {
   COURSES: "astu_courses",
   OFFERINGS: "astu_offerings",
   CURRENT_USER: "astu_current_user",
-} as const;
+} as const
 
 // Helper to safely access localStorage
-const getFromStorage = <T>(key: string): T[] => {
+const getFromStorage = <T>(key: string): T[] => {\
   if (typeof window === "undefined") return [];
-  try {
+  try {\
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
-  } catch {
+  } catch {\
     return [];
   }
 };
 
-const saveToStorage = <T>(key: string, data: T[]): void => {
+const saveToStorage = <T>(key: string, data: T[]): void => {\
   if (typeof window === "undefined") return;
-  try {
+  try {\
     localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error("Failed to save to localStorage:", error);
+  } catch (error) {\
+    console.error("Failed to save to localStorage:\", error);
   }
 };
 
 // University storage operations
-export const universityStorage = {
+export const universityStorage = {\
   getAll: (): University[] =>
     getFromStorage<University>(STORAGE_KEYS.UNIVERSITIES),
 
-  getById: (id: string): University | undefined => {
+  getById: (id: string): University | undefined => {\
     return universityStorage.getAll().find((u) => u.id === id);
   },
 
-  getByDomain: (domain: string): University | undefined => {
+  getByDomain: (domain: string): University | undefined => {\
     return universityStorage
       .getAll()
       .find((u) => u.domain.toLowerCase() === domain.toLowerCase());
   },
 
-  create: (
+  create: (\
     university: Omit<University, "id" | "createdAt" | "updatedAt">
-  ): University => {
+  ): University => {\
     const universities = universityStorage.getAll();
     const newUniversity: University = {
-      ...university,
+      ...university,\
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -69,13 +61,13 @@ export const universityStorage = {
     return newUniversity;
   },
 
-  update: (id: string, updates: Partial<University>): University | null => {
+  update: (id: string, updates: Partial<University>): University | null => {\
     const universities = universityStorage.getAll();
     const index = universities.findIndex((u) => u.id === id);
     if (index === -1) return null;
 
     universities[index] = {
-      ...universities[index],
+      ...universities[index],\
       ...updates,
       updatedAt: new Date().toISOString(),
     };
@@ -85,83 +77,80 @@ export const universityStorage = {
 };
 
 // Entity operations
-export const entityStorage = {
-  getAll: (universityId?: string): Entity[] => {
-    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES);
-    // return universityId
-    //   ? entities.filter((e) => e.universityId === universityId)
-    //   : entities;
-    return entities;
+export const entityStorage = {\
+  getAll: (universityId?: string): Entity[] => {\
+    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
+    return universityId
+      ? entities.filter((e) => e.universityId === universityId)
+      : entities
   },
 
-  getById: (id: string): Entity | undefined => {
+  getById: (id: string): Entity | undefined => {\
     return getFromStorage<Entity>(STORAGE_KEYS.ENTITIES).find(
       (e) => e.id === id
-    );
+    )
   },
 
-  getByParentId: (parentId: string | null, universityId: string): Entity[] => {
+  getByParentId: (parentId: string | null, universityId: string): Entity[] => {\
     return entityStorage
       .getAll(universityId)
-      .filter((e) => e.parentEntityId === parentId);
+      .filter((e) => e.parentEntityId === parentId)
   },
-
-  create: (entity: Omit<Entity, "id" | "createdAt" | "updatedAt">): Entity => {
-    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES);
+\
+  create: (entity: Omit<Entity, "id" | "createdAt" | "updatedAt">): Entity => {\
+    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
     const newEntity: Entity = {
-      ...entity,
+      ...entity,\
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-    entities.push(newEntity);
-    saveToStorage(STORAGE_KEYS.ENTITIES, entities);
-    return newEntity;
+    }
+    entities.push(newEntity)
+    saveToStorage(STORAGE_KEYS.ENTITIES, entities)
+    return newEntity
   },
 
-  update: (id: string, updates: Partial<Entity>): Entity | null => {
-    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES);
-    const index = entities.findIndex((e) => e.id === id);
-    if (index === -1) return null;
+  update: (id: string, updates: Partial<Entity>): Entity | null => {\
+    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
+    const index = entities.findIndex((e) => e.id === id)
+    if (index === -1) return null
 
     entities[index] = {
-      ...entities[index],
+      ...entities[index],\
       ...updates,
       updatedAt: new Date().toISOString(),
-    };
-    saveToStorage(STORAGE_KEYS.ENTITIES, entities);
-    return entities[index];
+    }
+    saveToStorage(STORAGE_KEYS.ENTITIES, entities)
+    return entities[index]
   },
 
-  archive: (id: string): boolean => {
-    return !!entityStorage.update(id, { status: "Archived" });
+  archive: (id: string): boolean => {\
+    return !!entityStorage.update(id, { status: "Archived" })
   },
 
-  // 💡 New helper for admin flows: return all entities for a university (ignore status/type filters)
-  // getAll: (universityId: string): Entity[] => {
-  //   const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES);
-  //   // return entities.filter((e) => e.universityId === universityId);
-  //   return entities;
-  // },
+  getByManagerId: (managerId: string, universityId: string): Entity | undefined => {\
+    return entityStorage
+      .getAll(universityId)
+      .find((e) => e.managerId === managerId)
+  },
 
-  // 💡 Legacy/filtered helper kept for UI that only needs active departments
-  getActiveDepartments: (universityId?: string): Entity[] => {
-    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES);
+  getActiveDepartments: (universityId?: string): Entity[] => {\
+    const entities = getFromStorage<Entity>(STORAGE_KEYS.ENTITIES)
     const filtered = universityId
       ? entities.filter((e) => e.universityId === universityId)
-      : entities;
+      : entities
     return filtered.filter(
       (entity) => entity.status === "Active" && entity.type === "Department"
-    );
+    )
   },
 };
 
 // Personnel operations - now entity-level
-export const personnelStorage = {
-  getAll: (entityId?: string, universityId?: string): Personnel[] => {
+export const personnelStorage = {\
+  getAll: (entityId?: string, universityId?: string): Personnel[] => {\
     const personnel = getFromStorage<Personnel>(STORAGE_KEYS.PERSONNEL);
     let filtered = personnel;
-    if (universityId) {
+    if (universityId) {\
       filtered = filtered.filter((p) => p.universityId === universityId);
     }
     if (entityId) {
@@ -266,31 +255,16 @@ export const entityAssignmentStorage = {
   getAll: (universityId?: string): EntityAssignment[] => {
     const assignments = getFromStorage<EntityAssignment>(
       STORAGE_KEYS.ENTITY_ASSIGNMENTS
-    );
+    )
     return universityId
       ? assignments.filter((a) => a.universityId === universityId)
-      : assignments;
+      : assignments
   },
 
   getById: (id: string): EntityAssignment | undefined => {
     return getFromStorage<EntityAssignment>(
       STORAGE_KEYS.ENTITY_ASSIGNMENTS
-    ).find((a) => a.id === id);
-  },
-
-  getByUserId: (userId: string, universityId: string): EntityAssignment[] => {
-    return entityAssignmentStorage
-      .getAll(universityId)
-      .filter((a) => a.userId === userId);
-  },
-
-  getByEntityId: (
-    entityId: string,
-    universityId: string
-  ): EntityAssignment[] => {
-    return entityAssignmentStorage
-      .getAll(universityId)
-      .filter((a) => a.entityId === entityId);
+    ).find((a) => a.id === id)
   },
 
   getByUserAndEntity: (
@@ -300,7 +274,22 @@ export const entityAssignmentStorage = {
   ): EntityAssignment | undefined => {
     return entityAssignmentStorage
       .getAll(universityId)
-      .find((a) => a.userId === userId && a.entityId === entityId);
+      .find((a) => a.userId === userId && a.entityId === entityId)
+  },
+
+  getByUserId: (userId: string, universityId: string): EntityAssignment | undefined => {
+    return entityAssignmentStorage
+      .getAll(universityId)
+      .find((a) => a.userId === userId)
+  },
+
+  getByEntityId: (
+    entityId: string,
+    universityId: string
+  ): EntityAssignment | undefined => {
+    return entityAssignmentStorage
+      .getAll(universityId)
+      .find((a) => a.entityId === entityId)
   },
 
   create: (
@@ -308,16 +297,16 @@ export const entityAssignmentStorage = {
   ): EntityAssignment => {
     const assignments = getFromStorage<EntityAssignment>(
       STORAGE_KEYS.ENTITY_ASSIGNMENTS
-    );
+    )
     const newAssignment: EntityAssignment = {
       ...assignment,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-    assignments.push(newAssignment);
-    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, assignments);
-    return newAssignment;
+    }
+    assignments.push(newAssignment)
+    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, assignments)
+    return newAssignment
   },
 
   update: (
@@ -326,29 +315,29 @@ export const entityAssignmentStorage = {
   ): EntityAssignment | null => {
     const assignments = getFromStorage<EntityAssignment>(
       STORAGE_KEYS.ENTITY_ASSIGNMENTS
-    );
-    const index = assignments.findIndex((a) => a.id === id);
-    if (index === -1) return null;
+    )
+    const index = assignments.findIndex((a) => a.id === id)
+    if (index === -1) return null
 
     assignments[index] = {
       ...assignments[index],
       ...updates,
       updatedAt: new Date().toISOString(),
-    };
-    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, assignments);
-    return assignments[index];
+    }
+    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, assignments)
+    return assignments[index]
   },
 
   delete: (id: string): boolean => {
     const assignments = getFromStorage<EntityAssignment>(
       STORAGE_KEYS.ENTITY_ASSIGNMENTS
-    );
-    const filtered = assignments.filter((a) => a.id !== id);
-    if (filtered.length === assignments.length) return false;
-    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, filtered);
-    return true;
+    )
+    const filtered = assignments.filter((a) => a.id !== id)
+    if (filtered.length === assignments.length) return false
+    saveToStorage(STORAGE_KEYS.ENTITY_ASSIGNMENTS, filtered)
+    return true
   },
-};
+}
 
 export const assignmentStorage = entityAssignmentStorage;
 
