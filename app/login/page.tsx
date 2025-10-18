@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { login, getCurrentUser } from "@/lib/auth"
 import { Building2, GraduationCap } from "lucide-react"
 
@@ -14,16 +15,17 @@ export default function LoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [selectedEntity, setSelectedEntity] = useState("")
+  const [userRole, setUserRole] = useState<"SuperAdmin" | "EntityAdmin" | null>(null)
+  const [availableEntities, setAvailableEntities] = useState<any[]>([])
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [step, setStep] = useState<"credentials" | "entity">("credentials")
 
   useEffect(() => {
-    // Check if user is already logged in
     const currentUser = getCurrentUser()
     if (currentUser) {
-      if (currentUser.mustChangePassword) {
-        router.push("/change-password")
-      } else if (currentUser.role === "SuperAdmin") {
+      if (currentUser.role === "SuperAdmin") {
         router.push("/super-admin")
       } else {
         router.push("/entity-admin")
@@ -31,26 +33,62 @@ export default function LoginPage() {
     }
   }, [router])
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
     try {
-      const result = login(username, password)
+      console.log("[v0] Attempting login with username:", username)
+
+      const superAdminResult = login(username, password)
+
+      if (superAdminResult.success && superAdminResult.user?.role === "SuperAdmin") {
+        console.log("[v0] SuperAdmin login successful")
+        router.push("/super-admin")
+        return
+      }
+
+      if (superAdminResult.error?.includes("Entity")) {
+        // User exists but is EntityAdmin - need to select entity
+        setUserRole("EntityAdmin")
+        setStep("entity")
+        setError("")
+      } else {
+        setError(superAdminResult.error || "Login failed")
+      }
+    } catch (err) {
+      console.error("[v0] Login error:", err)
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEntitySelect = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+
+    if (!selectedEntity) {
+      setError("Please select an entity")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      console.log("[v0] Attempting EntityAdmin login with entity:", selectedEntity)
+
+      const result = login(username, password, selectedEntity)
 
       if (result.success && result.user) {
-        if (result.user.mustChangePassword) {
-          router.push("/change-password")
-        } else if (result.user.role === "SuperAdmin") {
-          router.push("/super-admin")
-        } else {
-          router.push("/entity-admin")
-        }
+        console.log("[v0] EntityAdmin login successful")
+        router.push("/entity-admin")
       } else {
         setError(result.error || "Login failed")
       }
     } catch (err) {
+      console.error("[v0] Entity login error:", err)
       setError("An unexpected error occurred")
     } finally {
       setIsLoading(false)
@@ -72,42 +110,84 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>Enter your credentials to access the system</CardDescription>
+            <CardDescription>
+              {step === "credentials" ? "Enter your credentials" : "Select your entity"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  autoComplete="username"
-                />
-              </div>
+            {step === "credentials" ? (
+              <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
 
-              {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
+                {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleEntitySelect} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="entity">Select Entity</Label>
+                  <Select value={selectedEntity} onValueChange={setSelectedEntity}>
+                    <SelectTrigger id="entity">
+                      <SelectValue placeholder="Choose an entity to manage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableEntities.map((entity) => (
+                        <SelectItem key={entity.id} value={entity.id}>
+                          {entity.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 bg-transparent"
+                    onClick={() => {
+                      setStep("credentials")
+                      setSelectedEntity("")
+                      setError("")
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={isLoading || !selectedEntity}>
+                    {isLoading ? "Signing in..." : "Continue"}
+                  </Button>
+                </div>
+              </form>
+            )}
 
             <div className="mt-6 pt-6 border-t border-border space-y-3">
               <p className="text-sm text-muted-foreground text-center">New university?</p>

@@ -1,18 +1,18 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { changePassword, getCurrentUser, getCurrentUserAssignment } from "@/lib/auth"
+import { changePassword, getCurrentUser, getCurrentAssignment, isEntityAdmin } from "@/lib/auth"
 import { Building2 } from "lucide-react"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
+  const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
@@ -21,23 +21,20 @@ export default function ChangePasswordPage() {
   useEffect(() => {
     const currentUser = getCurrentUser()
     if (!currentUser) {
-      router.push("/")
+      router.push("/login")
       return
     }
 
-    const assignment = getCurrentUserAssignment()
-    if (!assignment) {
-      router.push("/")
+    if (!isEntityAdmin()) {
+      // SuperAdmins don't have entity assignments, redirect them
+      router.push("/super-admin")
       return
     }
 
-    if (!assignment.mustChangePassword) {
+    const assignment = getCurrentAssignment()
+    if (!assignment?.mustChangePassword) {
       // Already changed password, redirect to dashboard
-      if (currentUser.role === "SuperAdmin") {
-        router.push("/super-admin")
-      } else {
-        router.push("/entity-admin")
-      }
+      router.push("/entity-admin")
     }
   }, [router])
 
@@ -61,27 +58,29 @@ export default function ChangePasswordPage() {
       const currentUser = getCurrentUser()
       if (!currentUser) {
         setError("Session expired. Please login again.")
-        router.push("/")
+        router.push("/login")
         return
       }
 
-      const assignment = getCurrentUserAssignment()
+      const assignment = getCurrentAssignment()
       if (!assignment) {
         setError("No entity assignment found. Please contact administrator.")
         return
       }
 
-      const success = changePassword(currentUser.id, assignment.entityId, currentUser.universityId, newPassword)
+      const result = changePassword(
+        currentUser.id,
+        assignment.entityId,
+        currentUser.universityId,
+        oldPassword,
+        newPassword,
+      )
 
-      if (success) {
-        // Redirect to appropriate dashboard
-        if (currentUser.role === "SuperAdmin") {
-          router.push("/super-admin")
-        } else {
-          router.push("/entity-admin")
-        }
+      if (result.success) {
+        console.log("[v0] Password changed successfully")
+        router.push("/entity-admin")
       } else {
-        setError("Failed to change password")
+        setError(result.error || "Failed to change password")
       }
     } catch (err) {
       console.error("[v0] Error changing password:", err)
@@ -109,6 +108,19 @@ export default function ChangePasswordPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="oldPassword">Current Password</Label>
+                <Input
+                  id="oldPassword"
+                  type="password"
+                  placeholder="Enter your current password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
                 <Input

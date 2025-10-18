@@ -1,28 +1,12 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/hooks/use-auth";
-import {
-  entityStorage,
-  userStorage,
-  entityAssignmentStorage,
-} from "@/lib/storage";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/hooks/use-auth"
+import { entityStorage, userStorage, entityAssignmentStorage } from "@/lib/storage"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -30,50 +14,43 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Trash2, Copy } from "lucide-react";
-import { generateTempPassword } from "@/lib/auth";
-import type { EntityAssignment } from "@/lib/types";
+} from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus, Trash2, Copy } from "lucide-react"
+import { generateTempPassword } from "@/lib/auth"
+import type { EntityAssignment } from "@/lib/types"
 
 export default function EntityAssignmentsPage() {
-  const { user, university, isLoading } = useAuth(true);
-  const [assignments, setAssignments] = useState<EntityAssignment[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [entities, setEntities] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedEntity, setSelectedEntity] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { user, university, isLoading } = useAuth(true)
+  const [assignments, setAssignments] = useState<EntityAssignment[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [entities, setEntities] = useState<any[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState("")
+  const [selectedEntity, setSelectedEntity] = useState("")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user || !university) return;
+    if (!user || !university) return
 
-    console.log("[v0] Loading assignments for university:", university.id);
-    const allAssignments = entityAssignmentStorage.getAll(university.id);
-    const allUsers = userStorage.getAll(university.id);
-    const allEntities = entityStorage.getAll(university.id);
+    console.log("[v0] Loading assignments for university:", university.id)
+    const allAssignments = entityAssignmentStorage.getAll(university.id)
+    const allUsers = userStorage.getAll(university.id)
+    const allEntities = entityStorage.getAll(university.id)
 
-    console.log("[v0] Loaded entities:", allEntities);
-    console.log("[v0] Loaded users:", allUsers);
+    console.log("[v0] Loaded entities:", allEntities)
+    console.log("[v0] Loaded users:", allUsers)
 
-    setAssignments(allAssignments);
-    setUsers(allUsers);
-    setEntities(allEntities);
-  }, [user, university]);
+    setAssignments(allAssignments)
+    setUsers(allUsers)
+    setEntities(allEntities)
+  }, [user, university])
 
   const handleAssign = () => {
-    if (!selectedUser || !selectedEntity || !university) return;
+    if (!selectedUser || !selectedEntity || !university) return
 
-    const tempPassword = generateTempPassword();
+    const tempPassword = generateTempPassword()
     const assignment: EntityAssignment = {
       id: `assign-${Date.now()}`,
       universityId: university.id,
@@ -82,51 +59,46 @@ export default function EntityAssignmentsPage() {
       password: tempPassword,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      mustChangePassword: true,
-    };
+    }
 
-    entityAssignmentStorage.create(assignment);
-    setAssignments([...assignments, assignment]);
-    setSelectedUser("");
-    setSelectedEntity("");
-    setIsOpen(false);
-  };
+    entityAssignmentStorage.create(assignment)
+    setAssignments([...assignments, assignment])
+    setSelectedUser("")
+    setSelectedEntity("")
+    setIsOpen(false)
+  }
 
   const handleRemoveAssignment = (assignmentId: string) => {
-    entityAssignmentStorage.delete(assignmentId);
-    setAssignments(assignments.filter((a) => a.id !== assignmentId));
-  };
+    entityAssignmentStorage.delete(assignmentId)
+    setAssignments(assignments.filter((a) => a.id !== assignmentId))
+  }
 
   const handleCopyPassword = (password: string, id: string) => {
-    navigator.clipboard.writeText(password);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+    navigator.clipboard.writeText(password)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const filteredAssignments = assignments.filter((assignment) => {
-    const user = users.find((u) => u.id === assignment.userId);
-    const entity = entities.find((e) => e.id === assignment.entityId);
-    const searchLower = searchTerm.toLowerCase();
+    const user = users.find((u) => u.id === assignment.userId)
+    const entity = entities.find((e) => e.id === assignment.entityId)
+    const searchLower = searchTerm.toLowerCase()
     return (
       user?.username.toLowerCase().includes(searchLower) ||
       false ||
       entity?.name.toLowerCase().includes(searchLower) ||
       false
-    );
-  });
+    )
+  })
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Entity Assignments
-          </h1>
-          <p className="text-muted-foreground">
-            Assign users to manage entities and generate credentials
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Entity Assignments</h1>
+          <p className="text-muted-foreground">Assign users to manage entities and generate credentials</p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
@@ -138,9 +110,7 @@ export default function EntityAssignmentsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Assign User to Entity</DialogTitle>
-              <DialogDescription>
-                Create a new entity assignment with auto-generated credentials
-              </DialogDescription>
+              <DialogDescription>Create a new entity assignment with auto-generated credentials</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -160,10 +130,7 @@ export default function EntityAssignmentsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Entity</label>
-                <Select
-                  value={selectedEntity}
-                  onValueChange={setSelectedEntity}
-                >
+                <Select value={selectedEntity} onValueChange={setSelectedEntity}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select entity" />
                   </SelectTrigger>
@@ -194,9 +161,7 @@ export default function EntityAssignmentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Active Assignments</CardTitle>
-          <CardDescription>
-            Users assigned to manage entities with their credentials
-          </CardDescription>
+          <CardDescription>Users assigned to manage entities with their credentials</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -213,68 +178,37 @@ export default function EntityAssignmentsPage() {
               <TableBody>
                 {filteredAssignments.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-muted-foreground py-8"
-                    >
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       No assignments yet
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredAssignments.map((assignment) => {
-                    const assignedUser = users.find(
-                      (u) => u.id === assignment.userId
-                    );
-                    const assignedEntity = entities.find(
-                      (e) => e.id === assignment.entityId
-                    );
+                    const assignedUser = users.find((u) => u.id === assignment.userId)
+                    const assignedEntity = entities.find((e) => e.id === assignment.entityId)
                     return (
                       <TableRow key={assignment.id}>
-                        <TableCell className="font-medium">
-                          {assignedUser?.username}
-                        </TableCell>
+                        <TableCell className="font-medium">{assignedUser?.username}</TableCell>
                         <TableCell>{assignedEntity?.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              {assignment.password}
-                            </code>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">{assignment.password}</code>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {new Date(assignment.createdAt).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell>{new Date(assignment.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
-                            onClick={() =>
-                              handleCopyPassword(
-                                assignment.password,
-                                assignment.id
-                              )
-                            }
+                            onClick={() => handleCopyPassword(assignment.password, assignment.id)}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() =>
-                              handleRemoveAssignment(assignment.id)
-                            }
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() =>
-                              handleRemoveAssignment(assignment.id)
-                            }
-                          >
+                          <Button variant="ghost" onClick={() => handleRemoveAssignment(assignment.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })
                 )}
               </TableBody>
@@ -283,5 +217,5 @@ export default function EntityAssignmentsPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

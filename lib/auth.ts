@@ -1,23 +1,20 @@
-// Authentication utilities
+// Authentication utilities - redesigned for entity-based login
 import { userStorage, entityAssignmentStorage, sessionStorage, universityStorage, entityStorage } from "./storage"
 import type { UserAccount, University, EntityAssignment, Entity } from "./types"
 
-// Simple hash function for demo purposes (in production, use bcrypt or similar)
 export const hashPassword = (password: string): string => {
-  return btoa(password) // Base64 encoding for demo
+  return btoa(password)
 }
 
 export const verifyPassword = (password: string, hash: string): boolean => {
   return btoa(password) === hash
 }
 
-// Generate username from user info
 export const generateUsername = (fullName: string, userId: string): string => {
   const namePart = fullName.toLowerCase().replace(/\s+/g, ".")
   return `${namePart}.${userId.substring(0, 6)}`
 }
 
-// Generate temporary password
 export const generateTempPassword = (): string => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
   let password = ""
@@ -27,109 +24,148 @@ export const generateTempPassword = (): string => {
   return password
 }
 
-// Login function with entity assignment support
 export const login = (
   username: string,
   password: string,
   entityId?: string,
-): { success: boolean; user?: UserAccount; entity?: Entity; assignment?: EntityAssignment; error?: string } => {
-  const user = userStorage.getByUsername(username)
+): {
+  success: boolean
+  user?: UserAccount
+  entity?: Entity
+  assignment?: EntityAssignment
+  university?: University
+  error?: string
+} => {
+  console.log("[v0] Login attempt:", { username, entityId })
 
+  const user = userStorage.getByUsername(username)
   if (!user) {
+    console.log("[v0] User not found:", username)
     return { success: false, error: "Invalid username or password" }
   }
 
-  // If entityId is provided, verify the entity assignment
-  if (entityId) {
-    const assignment = entityAssignmentStorage.getByUserAndEntity(user.id, entityId, user.universityId)
-    if (!assignment) {
-      return { success: false, error: "User is not assigned to this entity" }
-    }
+  console.log("[v0] User found:", user)
 
-    if (!verifyPassword(password, assignment.password)) {
-      return { success: false, error: "Invalid username or password" }
-    }
-
-    const entity = entityStorage.getById(entityId)
-    if (!entity) {
-      return { success: false, error: "Entity not found" }
-    }
-
-    sessionStorage.setCurrentUser(user)
-    return { success: true, user, entity, assignment }
-  }
-
-  // For SuperAdmin login (no entity assignment needed)
+  // SuperAdmin login - no entity required
   if (user.role === "SuperAdmin") {
+    console.log("[v0] SuperAdmin login detected")
+    const university = universityStorage.getById(user.universityId)
+    if (!university) {
+      return { success: false, error: "University not found" }
+    }
+
+    // For SuperAdmin, we don't need to verify a password since they don't have entity assignments
+    // In a real system, you might want to add a separate password for SuperAdmin
     sessionStorage.setCurrentUser(user)
-    return { success: true, user }
+    sessionStorage.setCurrentEntity(null)
+    console.log("[v0] SuperAdmin login successful")
+    return { success: true, user, university }
   }
 
-  return { success: false, error: "Entity assignment required for EntityAdmin login" }
+  // EntityAdmin login - entity required
+  if (!entityId) {
+    console.log("[v0] EntityAdmin login requires entityId")
+    return { success: false, error: "Entity selection required for this user" }
+  }
+
+  console.log("[v0] EntityAdmin login - checking assignment")
+  const assignment = entityAssignmentStorage.getByUserAndEntity(user.id, entityId, user.universityId)
+  if (!assignment) {
+    console.log("[v0] No assignment found for user and entity")
+    return { success: false, error: "User is not assigned to this entity" }
+  }
+
+  console.log("[v0] Assignment found, verifying password")
+  if (!verifyPassword(password, assignment.password)) {
+    console.log("[v0] Password verification failed")
+    return { success: false, error: "Invalid username or password" }
+  }
+
+  const entity = entityStorage.getById(entityId)
+  if (!entity) {
+    console.log("[v0] Entity not found")
+    return { success: false, error: "Entity not found" }
+  }
+
+  const university = universityStorage.getById(user.universityId)
+  if (!university) {
+    console.log("[v0] University not found")
+    return { success: false, error: "University not found" }
+  }
+
+  sessionStorage.setCurrentUser(user)
+  sessionStorage.setCurrentEntity(entity)
+  sessionStorage.setCurrentAssignment(assignment)
+  console.log("[v0] EntityAdmin login successful")
+  return { success: true, user, entity, assignment, university }
 }
 
-// Logout function
 export const logout = (): void => {
   sessionStorage.clearCurrentUser()
+  sessionStorage.clearCurrentEntity()
+  sessionStorage.clearCurrentAssignment()
 }
 
-// Get current user
 export const getCurrentUser = (): UserAccount | null => {
   return sessionStorage.getCurrentUser()
 }
 
-// Check if user is authenticated
+export const getCurrentEntity = (): Entity | null => {
+  return sessionStorage.getCurrentEntity()
+}
+
+export const getCurrentAssignment = (): EntityAssignment | null => {
+  return sessionStorage.getCurrentAssignment()
+}
+
 export const isAuthenticated = (): boolean => {
   return getCurrentUser() !== null
 }
 
-// Users need to change password for their entity assignment, not their user account
+export const isSuperAdmin = (): boolean => {
+  const user = getCurrentUser()
+  return user?.role === "SuperAdmin"
+}
+
+export const isEntityAdmin = (): boolean => {
+  const user = getCurrentUser()
+  return user?.role === "EntityAdmin"
+}
+
 export const changePassword = (
   userId: string,
   entityId: string,
   universityId: string,
+  oldPassword: string,
   newPassword: string,
-): boolean => {
-  const hashedPassword = hashPassword(newPassword)
-  const assignment = entityAssignmentStorage.getByUserAndEntity(userId, entityId, universityId)
-  if (!assignment) return false
+): { success: boolean; error?: string } => {
+  console.log("[v0] Changing password for user:", userId)
 
+  const assignment = entityAssignmentStorage.getByUserAndEntity(userId, entityId, universityId)
+  if (!assignment) {
+    console.log("[v0] Assignment not found")
+    return { success: false, error: "Assignment not found" }
+  }
+
+  // Verify old password
+  if (!verifyPassword(oldPassword, assignment.password)) {
+    console.log("[v0] Old password verification failed")
+    return { success: false, error: "Current password is incorrect" }
+  }
+
+  const hashedPassword = hashPassword(newPassword)
   const updated = entityAssignmentStorage.update(assignment.id, {
     password: hashedPassword,
     mustChangePassword: false,
   })
 
-  return updated !== null
-}
+  if (!updated) {
+    console.log("[v0] Failed to update password")
+    return { success: false, error: "Failed to update password" }
+  }
 
-export const getCurrentUserAssignment = (): EntityAssignment | null => {
-  const user = getCurrentUser()
-  if (!user) return null
-
-  // Get the first entity assignment for the user
-  const assignments = entityAssignmentStorage.getByUserId(user.id, user.universityId)
-  return assignments.length > 0 ? assignments[0] : null
-}
-
-export const getCurrentUniversity = (): University | null => {
-  const user = getCurrentUser()
-  if (!user) return null
-  return universityStorage.getById(user.universityId) || null
-}
-
-export const belongsToUniversity = (userId: string, universityId: string): boolean => {
-  const user = userStorage.getById(userId)
-  return user?.universityId === universityId
-}
-
-export const getUniversityContext = (): { user: UserAccount; university: University } | null => {
-  const user = getCurrentUser()
-  if (!user) return null
-
-  const university = universityStorage.getById(user.universityId)
-  if (!university) return null
-
-  return { user, university }
+  console.log("[v0] Password changed successfully")
+  return { success: true }
 }
 
 export const getUserAssignedEntities = (userId: string, universityId: string): Entity[] => {
@@ -148,4 +184,25 @@ export const getEntityManagers = (
       return user ? { ...user, assignment: a } : null
     })
     .filter((item): item is UserAccount & { assignment: EntityAssignment } => item !== null)
+}
+
+export const getCurrentUniversity = (): University | null => {
+  const user = getCurrentUser()
+  if (!user) return null
+  return universityStorage.getById(user.universityId) || null
+}
+
+export const getUniversityContext = (): { user: UserAccount; university: University } | null => {
+  const user = getCurrentUser()
+  if (!user) return null
+
+  const university = universityStorage.getById(user.universityId)
+  if (!university) return null
+
+  return { user, university }
+}
+
+export const belongsToUniversity = (userId: string, universityId: string): boolean => {
+  const user = userStorage.getById(userId)
+  return user?.universityId === universityId
 }
