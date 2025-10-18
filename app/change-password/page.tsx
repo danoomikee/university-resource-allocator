@@ -1,110 +1,95 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  changePassword,
-  getCurrentUser,
-  getCurrentUserAssignment,
-} from "@/lib/auth";
-import { Building2 } from "lucide-react";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { changePassword, getCurrentUser, getCurrentUserAssignment } from "@/lib/auth"
+import { Building2 } from "lucide-react"
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter()
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUser()
     if (!currentUser) {
-      router.push("/");
-      return;
+      router.push("/")
+      return
     }
 
-    const assignment = getCurrentUserAssignment();
+    const assignment = getCurrentUserAssignment()
     if (!assignment) {
-      router.push("/");
-      return;
+      router.push("/")
+      return
     }
 
     if (!assignment.mustChangePassword) {
       // Already changed password, redirect to dashboard
       if (currentUser.role === "SuperAdmin") {
-        router.push("/super-admin");
+        router.push("/super-admin")
       } else {
-        router.push("/entity-admin");
+        router.push("/entity-admin")
       }
     }
-  }, [router]);
+  }, [router])
 
   const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault()
+    setError("")
 
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return;
+      setError("Password must be at least 8 characters long")
+      return
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
+      setError("Passwords do not match")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const currentUser = getCurrentUser();
+      const currentUser = getCurrentUser()
       if (!currentUser) {
-        setError("Session expired. Please login again.");
-        router.push("/");
-        return;
+        setError("Session expired. Please login again.")
+        router.push("/")
+        return
       }
 
-      const assignment = getCurrentUserAssignment();
+      const assignment = getCurrentUserAssignment()
       if (!assignment) {
-        setError("No entity assignment found. Please contact administrator.");
-        return;
+        setError("No entity assignment found. Please contact administrator.")
+        return
       }
 
-      const success = changePassword(
-        currentUser.id,
-        assignment.entityId,
-        currentUser.universityId,
-        newPassword
-      );
+      const success = changePassword(currentUser.id, assignment.entityId, currentUser.universityId, newPassword)
 
       if (success) {
         // Redirect to appropriate dashboard
         if (currentUser.role === "SuperAdmin") {
-          router.push("/super-admin");
+          router.push("/super-admin")
         } else {
-          router.push("/entity-admin");
+          router.push("/entity-admin")
         }
       } else {
-        setError("Failed to change password");
+        setError("Failed to change password")
       }
     } catch (err) {
-      console.error("[v0] Error changing password:", err);
-      setError("An unexpected error occurred");
+      console.error("[v0] Error changing password:", err)
+      setError("An unexpected error occurred")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -114,17 +99,13 @@ export default function ChangePasswordPage() {
             <Building2 className="h-10 w-10 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Change Password</h1>
-          <p className="text-muted-foreground text-pretty">
-            You must change your password before continuing
-          </p>
+          <p className="text-muted-foreground text-pretty">You must change your password before continuing</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Set New Password</CardTitle>
-            <CardDescription>
-              Choose a strong password for your account
-            </CardDescription>
+            <CardDescription>Choose a strong password for your account</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleChangePassword} className="space-y-4">
@@ -139,9 +120,7 @@ export default function ChangePasswordPage() {
                   required
                   autoComplete="new-password"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 8 characters long
-                </p>
+                <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
               </div>
 
               <div className="space-y-2">
@@ -157,11 +136,7 @@ export default function ChangePasswordPage() {
                 />
               </div>
 
-              {error && (
-                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
+              {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Changing Password..." : "Change Password"}
@@ -171,5 +146,5 @@ export default function ChangePasswordPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

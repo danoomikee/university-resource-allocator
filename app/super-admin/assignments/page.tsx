@@ -262,6 +262,14 @@ export default function EntityAssignmentsPage() {
                               handleRemoveAssignment(assignment.id)
                             }
                           >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              handleRemoveAssignment(assignment.id)
+                            }
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
