@@ -16,31 +16,24 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { userStorage, personnelStorage, entityStorage } from "@/lib/storage"
-import { generateUsername, generateTempPassword, hashPassword } from "@/lib/auth"
-import type { UserAccount, UserRole, Personnel, Entity } from "@/lib/types"
-import { UserCog, Plus, Edit, Search, Copy, CheckCircle } from "lucide-react"
+import { userStorage, entityStorage } from "@/lib/storage"
+import type { UserAccount, UserRole, Entity } from "@/lib/types"
+import { UserCog, Plus, Edit, Search } from "lucide-react"
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserAccount[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserAccount[]>([])
-  const [personnel, setPersonnel] = useState<Personnel[]>([])
   const [entities, setEntities] = useState<Entity[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filterRole, setFilterRole] = useState<string>("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null)
-  const [generatedPassword, setGeneratedPassword] = useState<string>("")
-  const [copiedPassword, setCopiedPassword] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
     username: "",
     role: "EntityAdmin" as UserRole,
-    personnelId: "",
-    assignedEntityId: "",
   })
 
   useEffect(() => {
@@ -53,7 +46,6 @@ export default function UsersPage() {
 
   const loadData = () => {
     setUsers(userStorage.getAll())
-    setPersonnel(personnelStorage.getAll().filter((p) => p.status === "Active"))
     setEntities(entityStorage.getAll().filter((e) => e.status === "Active"))
   }
 
@@ -73,36 +65,17 @@ export default function UsersPage() {
     setFilteredUsers(filtered)
   }
 
-  const getPersonnelName = (personnelId: string | null): string => {
-    if (!personnelId) return "N/A"
-    const person = personnel.find((p) => p.id === personnelId)
-    return person ? person.fullName : "Unknown"
-  }
-
-  const getEntityName = (entityId: string | null): string => {
-    if (!entityId) return "N/A"
-    const entity = entities.find((e) => e.id === entityId)
-    return entity ? entity.name : "Unknown"
-  }
-
   const handleCreate = () => {
     if (!formData.username.trim()) return
 
-    const tempPassword = generateTempPassword()
-    const hashedPassword = hashPassword(tempPassword)
-
     userStorage.create({
       username: formData.username,
-      password: hashedPassword,
       role: formData.role,
-      personnelId: formData.personnelId || null,
-      assignedEntityId: formData.assignedEntityId || null,
-      mustChangePassword: true,
     })
 
-    setGeneratedPassword(tempPassword)
     loadData()
-    // Keep dialog open to show password
+    setIsCreateDialogOpen(false)
+    resetForm()
   }
 
   const handleEdit = () => {
@@ -111,8 +84,6 @@ export default function UsersPage() {
     userStorage.update(selectedUser.id, {
       username: formData.username,
       role: formData.role,
-      personnelId: formData.personnelId || null,
-      assignedEntityId: formData.assignedEntityId || null,
     })
 
     loadData()
@@ -126,8 +97,6 @@ export default function UsersPage() {
     setFormData({
       username: user.username,
       role: user.role,
-      personnelId: user.personnelId || "",
-      assignedEntityId: user.assignedEntityId || "",
     })
     setIsEditDialogOpen(true)
   }
@@ -136,11 +105,7 @@ export default function UsersPage() {
     setFormData({
       username: "",
       role: "EntityAdmin",
-      personnelId: "",
-      assignedEntityId: "",
     })
-    setGeneratedPassword("")
-    setCopiedPassword(false)
   }
 
   const openCreateDialog = () => {
@@ -153,31 +118,12 @@ export default function UsersPage() {
     resetForm()
   }
 
-  const copyPassword = () => {
-    navigator.clipboard.writeText(generatedPassword)
-    setCopiedPassword(true)
-    setTimeout(() => setCopiedPassword(false), 2000)
-  }
-
-  const handlePersonnelChange = (personnelId: string) => {
-    setFormData({ ...formData, personnelId })
-
-    // Auto-generate username if personnel is selected
-    if (personnelId) {
-      const person = personnel.find((p) => p.id === personnelId)
-      if (person) {
-        const username = generateUsername(person.fullName, person.employeeId)
-        setFormData((prev) => ({ ...prev, username, personnelId }))
-      }
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Accounts</h1>
-          <p className="text-muted-foreground">Manage system user accounts</p>
+          <p className="text-muted-foreground">Manage system user accounts and entity assignments</p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
@@ -247,9 +193,7 @@ export default function UsersPage() {
                   <TableRow>
                     <TableHead>Username</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Personnel</TableHead>
-                    <TableHead>Assigned Entity</TableHead>
-                    <TableHead>Must Change Password</TableHead>
+                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -260,12 +204,8 @@ export default function UsersPage() {
                       <TableCell>
                         <Badge variant={user.role === "SuperAdmin" ? "default" : "secondary"}>{user.role}</Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{getPersonnelName(user.personnelId)}</TableCell>
-                      <TableCell className="text-muted-foreground">{getEntityName(user.assignedEntityId)}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.mustChangePassword ? "destructive" : "outline"}>
-                          {user.mustChangePassword ? "Yes" : "No"}
-                        </Badge>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(user.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
@@ -286,113 +226,46 @@ export default function UsersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Create a new user account</DialogDescription>
+            <DialogDescription>
+              Create a new user account. Passwords are assigned when users are assigned to entities.
+            </DialogDescription>
           </DialogHeader>
 
-          {!generatedPassword ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
-                >
-                  <SelectTrigger id="role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SuperAdmin">Super Admin</SelectItem>
-                    <SelectItem value="EntityAdmin">Entity Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="personnel">Personnel</Label>
-                <Select value={formData.personnelId} onValueChange={handlePersonnelChange}>
-                  <SelectTrigger id="personnel">
-                    <SelectValue placeholder="Select personnel (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {personnel.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.fullName} ({person.employeeId})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username">Username *</Label>
-                <Input
-                  id="username"
-                  placeholder="Enter username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                />
-              </div>
-
-              {formData.role === "EntityAdmin" && (
-                <div className="space-y-2">
-                  <Label htmlFor="assignedEntity">Assigned Entity</Label>
-                  <Select
-                    value={formData.assignedEntityId}
-                    onValueChange={(value) => setFormData({ ...formData, assignedEntityId: value })}
-                  >
-                    <SelectTrigger id="assignedEntity">
-                      <SelectValue placeholder="Select entity (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {entities.map((entity) => (
-                        <SelectItem key={entity.id} value={entity.id}>
-                          {entity.name} ({entity.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="role">Role *</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SuperAdmin">Super Admin</SelectItem>
+                  <SelectItem value="EntityAdmin">Entity Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>User account created successfully!</AlertDescription>
-              </Alert>
 
-              <div className="space-y-2">
-                <Label>Temporary Password</Label>
-                <div className="flex gap-2">
-                  <Input value={generatedPassword} readOnly className="font-mono" />
-                  <Button variant="outline" size="icon" onClick={copyPassword}>
-                    {copiedPassword ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Save this password! The user will be required to change it on first login.
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input
+                id="username"
+                placeholder="Enter username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              />
             </div>
-          )}
+          </div>
 
           <DialogFooter>
-            {!generatedPassword ? (
-              <>
-                <Button variant="outline" onClick={closeCreateDialog}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={!formData.username.trim()}>
-                  Create User
-                </Button>
-              </>
-            ) : (
-              <Button onClick={closeCreateDialog} className="w-full">
-                Done
-              </Button>
-            )}
+            <Button variant="outline" onClick={closeCreateDialog}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreate} disabled={!formData.username.trim()}>
+              Create User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -430,48 +303,6 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="editPersonnel">Personnel</Label>
-              <Select
-                value={formData.personnelId}
-                onValueChange={(value) => setFormData({ ...formData, personnelId: value })}
-              >
-                <SelectTrigger id="editPersonnel">
-                  <SelectValue placeholder="Select personnel (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {personnel.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {person.fullName} ({person.employeeId})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.role === "EntityAdmin" && (
-              <div className="space-y-2">
-                <Label htmlFor="editAssignedEntity">Assigned Entity</Label>
-                <Select
-                  value={formData.assignedEntityId}
-                  onValueChange={(value) => setFormData({ ...formData, assignedEntityId: value })}
-                >
-                  <SelectTrigger id="editAssignedEntity">
-                    <SelectValue placeholder="Select entity (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {entities.map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id}>
-                        {entity.name} ({entity.type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>

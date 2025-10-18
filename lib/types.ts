@@ -34,6 +34,7 @@ export type PersonnelStatus = "Active" | "Archived"
 
 export interface Personnel {
   id: string
+  entityId: string // Personnel now belongs to entities, not universities
   universityId: string
   fullName: string
   email: string
@@ -49,20 +50,18 @@ export interface UserAccount {
   id: string
   universityId: string
   username: string
-  password: string // hashed
   role: UserRole
-  personnelId: string | null
-  assignedEntityId: string | null
-  mustChangePassword: boolean
   createdAt: string
   updatedAt: string
 }
 
-export interface Assignment {
+export interface EntityAssignment {
   id: string
   universityId: string
-  personnelId: string
+  userId: string
   entityId: string
+  password: string // hashed - generated when user is assigned to entity
+  mustChangePassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -72,11 +71,11 @@ export type CourseStatus = "Active" | "Archived"
 export interface Course {
   id: string
   universityId: string
+  entityId: string // Courses belong to entities
   courseCode: string
   title: string
   creditHours: number
   description: string
-  providingEntityId: string
   status: CourseStatus
   createdAt: string
   updatedAt: string
@@ -87,8 +86,8 @@ export type OfferingStatus = "Active" | "Archived"
 export interface Offering {
   id: string
   universityId: string
+  entityId: string // Offerings belong to entities
   name: string
-  managingEntityId: string
   academicYear: string
   semester: string
   courseIds: string[]

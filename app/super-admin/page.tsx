@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { entityStorage, personnelStorage, userStorage, courseStorage, offeringStorage } from "@/lib/storage"
-import { Building2, Users, UserCog, BookOpen, Calendar, TrendingUp } from "lucide-react"
+import { entityStorage, userStorage, entityAssignmentStorage } from "@/lib/storage"
+import { Building2, Users, UserCog, TrendingUp } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 
 export default function SuperAdminDashboard() {
@@ -12,13 +12,8 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({
     totalEntities: 0,
     activeEntities: 0,
-    totalPersonnel: 0,
-    activePersonnel: 0,
     totalUsers: 0,
-    totalCourses: 0,
-    activeCourses: 0,
-    totalOfferings: 0,
-    activeOfferings: 0,
+    totalAssignments: 0,
   })
 
   const [entityBreakdown, setEntityBreakdown] = useState<{ name: string; value: number }[]>([])
@@ -28,21 +23,14 @@ export default function SuperAdminDashboard() {
     if (!user || !university) return
 
     const entities = entityStorage.getAll(university.id)
-    const personnel = personnelStorage.getAll(university.id)
     const users = userStorage.getAll(university.id)
-    const courses = courseStorage.getAll(university.id)
-    const offerings = offeringStorage.getAll(university.id)
+    const assignments = entityAssignmentStorage.getAll(university.id)
 
     setStats({
       totalEntities: entities.length,
       activeEntities: entities.filter((e) => e.status === "Active").length,
-      totalPersonnel: personnel.length,
-      activePersonnel: personnel.filter((p) => p.status === "Active").length,
       totalUsers: users.length,
-      totalCourses: courses.length,
-      activeCourses: courses.filter((c) => c.status === "Active").length,
-      totalOfferings: offerings.length,
-      activeOfferings: offerings.filter((o) => o.status === "Active").length,
+      totalAssignments: assignments.length,
     })
 
     // Entity breakdown by type
@@ -76,11 +64,11 @@ export default function SuperAdminDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">System overview and statistics for {university?.name}</p>
+        <p className="text-muted-foreground">Entity and user management for {university?.name}</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Entities</CardTitle>
@@ -89,17 +77,6 @@ export default function SuperAdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalEntities}</div>
             <p className="text-xs text-muted-foreground">{stats.activeEntities} active</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personnel</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPersonnel}</div>
-            <p className="text-xs text-muted-foreground">{stats.activePersonnel} active</p>
           </CardContent>
         </Card>
 
@@ -116,23 +93,12 @@ export default function SuperAdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Entity Assignments</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCourses}</div>
-            <p className="text-xs text-muted-foreground">{stats.activeCourses} active</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Offerings</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOfferings}</div>
-            <p className="text-xs text-muted-foreground">{stats.activeOfferings} active</p>
+            <div className="text-2xl font-bold">{stats.totalAssignments}</div>
+            <p className="text-xs text-muted-foreground">Active assignments</p>
           </CardContent>
         </Card>
 
