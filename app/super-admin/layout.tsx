@@ -7,7 +7,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { UniversityBadge } from "@/components/university-badge"
-import { Building2, Users, UserCog, BookOpen, Calendar, LogOut, Menu, X, LayoutDashboard } from "lucide-react"
+import { Building2, Users, UserCog, LogOut, Menu, X, LayoutDashboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,10 +18,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const navItems = [
     { href: "/super-admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/super-admin/entities", label: "Entities", icon: Building2 },
-    { href: "/super-admin/personnel", label: "Personnel", icon: Users },
     { href: "/super-admin/users", label: "User Accounts", icon: UserCog },
-    { href: "/super-admin/courses", label: "Courses", icon: BookOpen },
-    { href: "/super-admin/offerings", label: "Offerings", icon: Calendar },
+    { href: "/super-admin/assignments", label: "Entity Assignments", icon: Users },
   ]
 
   if (isLoading || !user || user.role !== "SuperAdmin") {

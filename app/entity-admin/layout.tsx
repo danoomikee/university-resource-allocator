@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 import { entityStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { UniversityBadge } from "@/components/university-badge"
-import { Building2, Users, BookOpen, Calendar, LogOut, Menu, X, LayoutDashboard } from "lucide-react"
+import { Building2, Users, BookOpen, Calendar, LogOut, Menu, X, LayoutDashboard, UserCog } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function EntityAdminLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,10 @@ export default function EntityAdminLayout({ children }: { children: React.ReactN
 
   const navItems = [
     { href: "/entity-admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/entity-admin/entities", label: "Sub-Entities", icon: Building2 },
     { href: "/entity-admin/personnel", label: "Personnel", icon: Users },
+    { href: "/entity-admin/users", label: "User Accounts", icon: UserCog },
+    { href: "/entity-admin/assignments", label: "Entity Assignments", icon: Users },
     { href: "/entity-admin/courses", label: "Courses", icon: BookOpen },
     { href: "/entity-admin/offerings", label: "Offerings", icon: Calendar },
   ]
