@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Copy, Check } from "lucide-react"
+import { Plus, Trash2, Copy } from "lucide-react"
 import { generateTempPassword } from "@/lib/auth"
 import type { EntityAssignment } from "@/lib/types"
 
@@ -34,9 +34,13 @@ export default function EntityAssignmentsPage() {
   useEffect(() => {
     if (!user || !university) return
 
+    console.log("[v0] Loading assignments for university:", university.id)
     const allAssignments = entityAssignmentStorage.getAll(university.id)
     const allUsers = userStorage.getAll(university.id)
     const allEntities = entityStorage.getAll(university.id)
+
+    console.log("[v0] Loaded entities:", allEntities)
+    console.log("[v0] Loaded users:", allUsers)
 
     setAssignments(allAssignments)
     setUsers(allUsers)
@@ -189,29 +193,17 @@ export default function EntityAssignmentsPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <code className="text-xs bg-muted px-2 py-1 rounded">{assignment.password}</code>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyPassword(assignment.password, assignment.id)}
-                            >
-                              {copiedId === assignment.id ? (
-                                <Check className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(assignment.createdAt).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell>{new Date(assignment.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveAssignment(assignment.id)}
-                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleCopyPassword(assignment.password, assignment.id)}
                           >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" onClick={() => handleRemoveAssignment(assignment.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
