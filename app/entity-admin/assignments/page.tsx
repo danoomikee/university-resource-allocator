@@ -67,7 +67,7 @@ export default function EntityAdminAssignmentsPage() {
       user.id,
       university.id
     );
-    if (userAssignments.length === 0) {
+    if (!userAssignments) {
       // no assigned entity for this user
       setAssignments([]);
       setUsers(allUsers);
@@ -77,7 +77,7 @@ export default function EntityAdminAssignmentsPage() {
     }
     console.log("we are here !!!!");
     // choose the first assignment as the "current" assigned entity (adjust as needed)
-    const assignedEntityId = userAssignments[0].entityId;
+    const assignedEntityId = userAssignments.entityId;
 
     // Filter to only show assignments for sub-entities of the current entity
     const relevantAssignments = allAssignments.filter((a) => {
